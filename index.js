@@ -86,18 +86,12 @@ client.once("ready", async () => {
 
     new SlashCommandBuilder()
       .setName("genkey")
-      .setDescription("Generate keys")
+      .setDescription("Generate keys (Admin)")
       .addStringOption(o =>
-        o.setName("prefix")
-          .setDescription("Prefix")
-          .setRequired(true)
+        o.setName("prefix").setDescription("Key Prefix").setRequired(true)
       )
       .addIntegerOption(o =>
-        o.setName("amount")
-          .setDescription("1-50")
-          .setMinValue(1)
-          .setMaxValue(50)
-          .setRequired(true)
+        o.setName("amount").setDescription("1-50").setMinValue(1).setMaxValue(50).setRequired(true)
       )
       .addStringOption(o =>
         o.setName("time")
@@ -109,7 +103,11 @@ client.once("ready", async () => {
             { name: "24h", value: "24" },
             { name: "Random", value: "r" }
           )
-      )
+      ),
+
+    new SlashCommandBuilder()
+      .setName("checkall")
+      .setDescription("Check all keys (Admin only)")
 
   ];
 
@@ -119,42 +117,39 @@ client.once("ready", async () => {
 // ===== Interaction =====
 client.on("interactionCreate", async (i) => {
 
-  // ===== Panel =====
+  // ===== PANEL =====
   if (i.isChatInputCommand() && i.commandName === "panel") {
 
     if (i.user.id !== OWNER)
-      return i.reply({ content: "No permission", ephemeral: true });
+      return i.reply({ content: "❌ No permission / ไม่มีสิทธิ์ใช้งาน", ephemeral: true });
 
-    // ===== Embed Guide =====
     const guideEmbed = new EmbedBuilder()
-      .setColor("#8A2BE2")
-      .setTitle("🔐 Swift Hub | Get Key Panel")
+      .setColor("#9B59B6")
+      .setTitle("🔐 Swift Hub | Get Key System")
       .setDescription(`
-✨ **How to Get Your Key (English Guide)** ✨
+✨ **How to Get Your Key (English)** ✨
 
-1️⃣ Click **Generate Token** to receive your personal token  
-2️⃣ Copy the token (Tap to copy 📋)  
-3️⃣ Click **Redeem** and paste your token  
-4️⃣ Receive your real key (Auto delete in 10s ⏳)  
-5️⃣ Use **Check Key** to see your active key
+1️⃣ Click **Generate Token** 🎫  
+2️⃣ Copy your token 📋  
+3️⃣ Click **Redeem** and paste it ✅  
+4️⃣ Receive your real key ⏳ (Auto delete in 10s)  
+5️⃣ Use **Check Key** to see your key 🔍
 
 ━━━━━━━━━━━━━━━━━━
 
 🇹🇭 **วิธีรับคีย์ (ภาษาไทย)** 🇹🇭
 
-1️⃣ กดปุ่ม **Generate Token** เพื่อรับโทเค็น  
+1️⃣ กด **Generate Token** 🎫  
 2️⃣ กดคัดลอกโทเค็น 📋  
-3️⃣ กดปุ่ม **Redeem** แล้ววางโทเค็น  
-4️⃣ รับคีย์จริง (ข้อความหายอัตโนมัติใน 10 วิ ⏳)  
-5️⃣ ใช้ปุ่ม **Check Key** เพื่อตรวจสอบคีย์ของคุณ
+3️⃣ กด **Redeem** แล้ววางโทเค็น ✅  
+4️⃣ รับคีย์จริง (หายอัตโนมัติ 10 วิ) ⏳  
+5️⃣ กด **Check Key** เพื่อตรวจสอบ 🔍
 
 ━━━━━━━━━━━━━━━━━━
 
-💖 ขอให้สนุกกับการใช้งานนะคะ 💖
-`)
-      .setFooter({
-        text: "Swift Hub • Secure Key System"
-      });
+💖 Secure • Safe • Easy 💖
+      `)
+      .setFooter({ text: "Swift Hub • Secure Key System" });
 
     const row = new ActionRowBuilder().addComponents(
 
@@ -180,11 +175,11 @@ client.on("interactionCreate", async (i) => {
     });
   }
 
-  // ===== GenKey =====
+  // ===== GENKEY =====
   if (i.isChatInputCommand() && i.commandName === "genkey") {
 
     if (i.user.id !== OWNER)
-      return i.reply({ content: "No permission", ephemeral: true });
+      return i.reply({ content: "❌ Admin only / เฉพาะแอดมิน", ephemeral: true });
 
     const prefix = i.options.getString("prefix");
     const amount = i.options.getInteger("amount");
@@ -203,16 +198,39 @@ client.on("interactionCreate", async (i) => {
         used: false
       });
 
-      txt += `${key} | ${d}h\n`;
+      txt += `🔑 ${key} | ${d}h\n`;
     }
 
     i.reply({
-      content: "```\n" + txt + "```",
+      content: "```txt\n" + txt + "```",
       ephemeral: true
     });
   }
 
-  // ===== Buttons =====
+  // ===== CHECK ALL (ADMIN) =====
+  if (i.isChatInputCommand() && i.commandName === "checkall") {
+
+    if (i.user.id !== OWNER)
+      return i.reply({ content: "❌ Admin only / เฉพาะแอดมิน", ephemeral: true });
+
+    const keys = await Key.find();
+
+    if (!keys.length)
+      return i.reply({ content: "⚠️ No keys in system", ephemeral: true });
+
+    let txt = "";
+
+    keys.forEach(k => {
+      txt += `${k.used ? "✅" : "❌"} ${k.key} | ${k.duration}h\n`;
+    });
+
+    i.reply({
+      content: "```txt\n" + txt + "```",
+      ephemeral: true
+    });
+  }
+
+  // ===== BUTTONS =====
   if (i.isButton()) {
 
     // Generate Token
@@ -227,7 +245,7 @@ client.on("interactionCreate", async (i) => {
       });
 
       return i.reply({
-        content: `\`${t}\``,
+        content: `🎫 Your Token / โทเค็นของคุณ\n\n\`${t}\`\n\n📋 Tap to Copy`,
         ephemeral: true
       });
     }
@@ -237,11 +255,11 @@ client.on("interactionCreate", async (i) => {
 
       const modal = new ModalBuilder()
         .setCustomId("redeemModal")
-        .setTitle("Redeem Token");
+        .setTitle("✅ Redeem Token");
 
       const input = new TextInputBuilder()
         .setCustomId("token")
-        .setLabel("Enter Your Token")
+        .setLabel("Paste Your Token / วางโทเค็นที่นี่")
         .setStyle(TextInputStyle.Short)
         .setRequired(true);
 
@@ -252,25 +270,46 @@ client.on("interactionCreate", async (i) => {
       return i.showModal(modal);
     }
 
-    // Check
+    // Check Key (USER)
     if (i.customId === "check") {
 
       const user = await User.findOne({ userId: i.user.id });
 
       if (!user)
-        return i.reply({ content: "No key found ❌", ephemeral: true });
+        return i.reply({
+          content: "❌ No Key Found\nไม่มีคีย์ในระบบ",
+          ephemeral: true
+        });
 
       if (Date.now() > user.expireAt)
-        return i.reply({ content: "Key expired ⏰", ephemeral: true });
+        return i.reply({
+          content: "⏰ Key Expired\nคีย์หมดอายุแล้ว",
+          ephemeral: true
+        });
+
+      const embed = new EmbedBuilder()
+        .setColor("#2ECC71")
+        .setTitle("🔑 Your Active Key | คีย์ของคุณ")
+        .addFields(
+          {
+            name: "📌 Key",
+            value: `\`${user.key}\``
+          },
+          {
+            name: "⏳ Expire",
+            value: `${user.expireAt}`
+          }
+        )
+        .setFooter({ text: "Tap key to copy 📋" });
 
       return i.reply({
-        content: `\`${user.key}\`\nExpire: ${user.expireAt}`,
+        embeds: [embed],
         ephemeral: true
       });
     }
   }
 
-  // ===== Modal =====
+  // ===== MODAL =====
   if (i.type === InteractionType.ModalSubmit) {
 
     if (i.customId !== "redeemModal") return;
@@ -280,12 +319,18 @@ client.on("interactionCreate", async (i) => {
     const token = await Token.findOne({ token: t, used: false });
 
     if (!token)
-      return i.reply({ content: "Invalid token ❌", ephemeral: true });
+      return i.reply({
+        content: "❌ Invalid Token\nโทเค็นไม่ถูกต้อง",
+        ephemeral: true
+      });
 
     const key = await Key.findOne({ used: false });
 
     if (!key)
-      return i.reply({ content: "No key in stock ❗", ephemeral: true });
+      return i.reply({
+        content: "⚠️ No Key Stock\nคีย์หมดสต๊อก",
+        ephemeral: true
+      });
 
     token.used = true;
     await token.save();
@@ -302,7 +347,11 @@ client.on("interactionCreate", async (i) => {
     );
 
     const msg = await i.reply({
-      content: `\`${key.key}\`\nExpire in ${key.duration}h ⏳`,
+      content:
+        `🎉 **Key Activated! | เปิดใช้งานสำเร็จ** 🎉\n\n` +
+        `🔑 Key:\n\`${key.key}\`\n\n` +
+        `⏳ Expire in: ${key.duration}h\n\n` +
+        `📋 Tap to copy (10s auto delete)`,
       ephemeral: true
     });
 
